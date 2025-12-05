@@ -56,7 +56,7 @@ class JUMP_INSTRUCTIONS{
 		void JNC(bool Carry_flag, uint16_t address, uint16_t &PC){
 			cout<< "before: " << "address: " << address << " "<< "PC: " << PC << endl;
 			if (!Carry_flag){
-				cout << "ccaleed";
+				cout << "called";
 				PC = address;
 				cout << "condition inside: " << "address: " << address << " " << "PC: " << PC << endl;
 			}else {

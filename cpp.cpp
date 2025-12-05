@@ -3,6 +3,8 @@
 #include <cstdint>
 #include "./FLAGS_REGISTER/Flags_register.h"
 #include "./JUMP_INSTRUCTIONS/Jump_Instructions.h"
+#include "./MEMORY_MODULE/READ_MEMORY.hpp"
+#include "./MEMORY_MODULE/WRITE_MEMORY.hpp"
 
 using namespace std;
 
@@ -18,10 +20,10 @@ class CPU {
 		CPU(): A(0), B(0), PC(0), memory(65536, 0), FlagsRegister(0) {};
 
 		//MEMORY
-		void load(uint16_t address){ A = memory[address]; }
-		void loadB(uint16_t address){ B = memory[address]; }
-		void store(uint16_t address){ memory[address] = A; }
-		void storeB(uint16_t address){ memory[address] = B; }
+		void loadA(uint16_t address){ A = __read_memory(address, memory); }
+		void loadB(uint16_t address){ B = __read_memory(address, memory); }
+		void storeA(uint16_t address){ __write_memory(address, A, memory); }
+		void storeB(uint16_t address){ __write_memory(address, B, memory); }
 
 		//ALU
 		void add(uint8_t value){
@@ -53,12 +55,12 @@ class CPU {
 		void execute(uint8_t instruction, uint16_t operand = 0){
 		switch(instruction){
 		
-			case 0x01: load(operand); PC += 2; break;
+			case 0x01: loadA(operand); PC += 2; break;
 			case 0x08: loadB(operand); PC += 2; break;
-			case 0x02: store(operand); PC += 2; break;
+			case 0x02: storeA(operand); PC += 2; break;
 			case 0x05: storeB(operand); PC += 2; break;
 
-			case 0x03: add(memory[operand]); PC += 1; break;
+			case 0x03: add( __read_memory(operand, memory) ); PC += 1; break;
 			case 0x06: plus(); PC += 1; break;
 			case 0x09: minus(); PC += 1; break;
 			case 0x10: mult(); PC += 1; break;
@@ -84,25 +86,20 @@ class CPU {
 
 int main() {
 	CPU cpu;
-	cpu.memory[0] = 0x01;
-	cpu.memory[1] = 0x10;
-	cpu.memory[0x10] = 0;
+	__write_memory(0x00, 0x01, cpu.memory);
+	__write_memory(0x01, 0x10, cpu.memory);
+	__write_memory(0x10, 0, cpu.memory);
 
-	cpu.memory[2] = 0x08;
-	cpu.memory[3] = 0x20;
-	cpu.memory[0x20] = 5;
+	__write_memory(0x02, 0x08, cpu.memory);
+	__write_memory(0x03, 0x20, cpu.memory);
+	__write_memory(0x20, 200, cpu.memory);
 
-	cpu.memory[4] = 0x06;
-	cpu.memory[5] = 0x23;
-	cpu.memory[6] = 90;
-	
-	cpu.memory[90] = 9;
+	__write_memory(0x04, 0x06, cpu.memory);
+	__write_memory(0x05, 0x04, cpu.memory);
 
-	cpu.memory[7] = 0x04;
-	cpu.memory[8] = 0x04;
-	while(cpu.PC < 9){
-		uint8_t opcode = cpu.memory[cpu.PC];
-		uint8_t operand = cpu.memory[cpu.PC + 1];
+	while(cpu.PC < 6){
+		uint8_t opcode = __read_memory(cpu.PC, cpu.memory);
+		uint8_t operand = __read_memory(cpu.PC + 1, cpu.memory);
 		cpu.execute(opcode, operand);
 	}
 
