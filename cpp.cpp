@@ -5,6 +5,8 @@
 #include "./JUMP_INSTRUCTIONS/Jump_Instructions.h"
 #include "./MEMORY_MODULE/READ_MEMORY.hpp"
 #include "./MEMORY_MODULE/WRITE_MEMORY.hpp"
+#include "./ALU/ALU.hpp"
+#include "./ALU/ALU_INSTRUCTIONS.hpp"
 
 using namespace std;
 
@@ -16,42 +18,16 @@ class CPU {
 
 		FLAGS_REGISTER flags;
 		JUMP_INSTRUCTIONS jump_instruction;
+		ALU alu;
 
-		CPU(): A(0), B(0), PC(0), memory(65536, 0), FlagsRegister(0) {};
+		CPU(): A(0), B(0), PC(0), memory(65536, 0), FlagsRegister(0), alu(A, B, flags) {};
 
 		//MEMORY
 		void loadA(uint16_t address){ A = __read_memory(address, memory); }
 		void loadB(uint16_t address){ B = __read_memory(address, memory); }
 		void storeA(uint16_t address){ __write_memory(address, A, memory); }
 		void storeB(uint16_t address){ __write_memory(address, B, memory); }
-
-		//ALU
-		void add(uint8_t value){
-			uint16_t full = (uint16_t)A + (uint16_t)value;
-			A = full & 0xFF;
-			flags.update(full, A);
-		}
-
-		void plus(){
-			uint16_t full = (uint16_t)A + (uint16_t)B;
-			A = full & 0xFF;
-			flags.update(full, A);
-		}
-
-		void minus(){
-			uint16_t full = (uint16_t)A - (uint16_t)B;
-			A = full & 0xFF;
-			flags.update(full, A);
-
-		}
-
-		void mult(){
-			uint16_t full = (uint16_t)A * (uint16_t)B;
-			A = full & 0xFF;
-			flags.update(full, A);
-
-		}
-
+		
 		void execute(uint8_t instruction, uint16_t operand = 0){
 		switch(instruction){
 		
@@ -59,11 +35,9 @@ class CPU {
 			case 0x08: loadB(operand); PC += 2; break;
 			case 0x02: storeA(operand); PC += 2; break;
 			case 0x05: storeB(operand); PC += 2; break;
-
-			case 0x03: add( __read_memory(operand, memory) ); PC += 1; break;
-			case 0x06: plus(); PC += 1; break;
-			case 0x09: minus(); PC += 1; break;
-			case 0x10: mult(); PC += 1; break;
+			case ALU_PLUS: alu.plus(); PC += 1; break;
+			case ALU_MINUS: alu.minus(); PC += 1; break;
+			case ALU_MULT: alu.mult(); PC += 1; break;
 
 			case 0x04:
 				OUT = A;
@@ -76,7 +50,18 @@ class CPU {
 			case 0x22: jump_instruction.JNZ(flags.Zero, operand, PC); PC += 2; break;
 			case 0x23: jump_instruction.JC(flags.Carry, operand, PC); PC += 2; break;
 			case 0x24: jump_instruction.JNC(flags.Carry, operand, PC); PC += 2; break;
-
+			case ALU_AND: alu.AND(); PC += 1; break;
+			case ALU_OR: alu.OR(); PC += 1; break;
+			case ALU_XOR: alu.XOR(); PC += 1; break;
+			case ALU_NOT: alu.NOT(); PC += 1; break;
+			case ALU_SHL: alu.SHL(); PC += 1; break;
+			case ALU_SHR: alu.SHR(); PC += 1; break;
+			case ALU_INC: alu.INC(); PC += 1; break;
+			case ALU_DEC: alu.DEC(); PC += 1; break;
+			case ALU_DIV: alu.DIV(); PC += 1; break;
+			case ALU_MOD: alu.MOD(); PC += 1; break;
+			case ALU_CMP: alu.CMP(); PC += 1; break;
+			
 			default:
 				cout << "Unknown Instruction.\n";
 				PC += 1;
@@ -92,9 +77,9 @@ int main() {
 
 	__write_memory(0x02, 0x08, cpu.memory);
 	__write_memory(0x03, 0x20, cpu.memory);
-	__write_memory(0x20, 200, cpu.memory);
+	__write_memory(0x20, 0, cpu.memory);
 
-	__write_memory(0x04, 0x06, cpu.memory);
+	__write_memory(0x04, ALU_DEC, cpu.memory);
 	__write_memory(0x05, 0x04, cpu.memory);
 
 	while(cpu.PC < 6){
