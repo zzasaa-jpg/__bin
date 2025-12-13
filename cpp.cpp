@@ -15,12 +15,13 @@ class CPU {
 		uint8_t A, B, OUT, FlagsRegister;
 		uint16_t PC;
 		vector<uint8_t> memory;
+		bool halted;
 
 		FLAGS_REGISTER flags;
 		JUMP_INSTRUCTIONS jump_instruction;
 		ALU alu;
 
-		CPU(): A(0), B(0), PC(0), memory(65536, 0), FlagsRegister(0), alu(A, B, flags) {};
+		CPU(): A(0), B(0), PC(0), memory(65536, 0), halted(false), FlagsRegister(0), alu(A, B, flags) {};
 
 		//MEMORY
 		void loadA(uint16_t address){ A = __read_memory(address, memory); }
@@ -61,7 +62,7 @@ class CPU {
 			case ALU_DIV: alu.DIV(); PC += 1; break;
 			case ALU_MOD: alu.MOD(); PC += 1; break;
 			case ALU_CMP: alu.CMP(); PC += 1; break;
-			
+			case 0xFF: halted = true; break;	
 			default:
 				cout << "Unknown Instruction.\n";
 				PC += 1;
@@ -73,16 +74,17 @@ int main() {
 	CPU cpu;
 	__write_memory(0x00, 0x01, cpu.memory);
 	__write_memory(0x01, 0x10, cpu.memory);
-	__write_memory(0x10, 0, cpu.memory);
+	__write_memory(0x10, 1, cpu.memory);
 
 	__write_memory(0x02, 0x08, cpu.memory);
 	__write_memory(0x03, 0x20, cpu.memory);
 	__write_memory(0x20, 0, cpu.memory);
 
-	__write_memory(0x04, ALU_DEC, cpu.memory);
-	__write_memory(0x05, 0x04, cpu.memory);
+	__write_memory(0x04, ALU_PLUS, cpu.memory);
+	__write_memory(0x05, 0xFF, cpu.memory);
+	__write_memory(0x06, 0x04, cpu.memory);
 
-	while(cpu.PC < 6){
+	while(!cpu.halted){
 		uint8_t opcode = __read_memory(cpu.PC, cpu.memory);
 		uint8_t operand = __read_memory(cpu.PC + 1, cpu.memory);
 		cpu.execute(opcode, operand);
